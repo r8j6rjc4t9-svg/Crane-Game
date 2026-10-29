@@ -1043,6 +1043,38 @@ window.addEventListener('pointerdown', function () {
   }
 });
 
+// touch buttons drive the same `keys` map + one-shot actions as the keyboard
+function bindTouchControls() {
+  var btns = document.querySelectorAll('#touch .tbtn');
+  btns.forEach(function (btn) {
+    var code = btn.getAttribute('data-key');
+    var press = function (e) {
+      if (e) e.preventDefault();
+      if (!state.started) {
+        state.started = true;
+        initAudio();
+        document.getElementById('start-hint').classList.add('hidden');
+      }
+      keys[code] = true;
+      btn.classList.add('active');
+      if (code === 'Space' || code === 'KeyO' || code === 'KeyC' || code === 'KeyM' || code === 'KeyH') {
+        window.dispatchEvent(new KeyboardEvent('keydown', { code: code }));
+      }
+    };
+    var release = function (e) {
+      if (e) e.preventDefault();
+      keys[code] = false;
+      btn.classList.remove('active');
+    };
+    btn.addEventListener('pointerdown', press);
+    btn.addEventListener('pointerup', release);
+    btn.addEventListener('pointercancel', release);
+    btn.addEventListener('pointerleave', release);
+    btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  });
+}
+bindTouchControls();
+
 // ---------------------------------------------------------------- HUD
 var el = {};
 function grabEls() {

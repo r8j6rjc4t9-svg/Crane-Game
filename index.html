@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Liebherr LTM Mobile Crane — 3D Game</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -36,6 +36,46 @@
   <div id="toast"></div>
   <div id="banner"></div>
   <div id="start-hint">click or press any key to start</div>
+
+  <div id="touch">
+    <div class="tgroup">
+      <div class="tlabel">SLEW</div>
+      <div class="trow">
+        <button class="tbtn" data-key="KeyQ">◀</button>
+        <button class="tbtn" data-key="KeyE">▶</button>
+      </div>
+    </div>
+    <div class="tgroup">
+      <div class="tlabel">BOOM</div>
+      <div class="trow">
+        <button class="tbtn" data-key="KeyW">▲</button>
+        <button class="tbtn" data-key="KeyS">▼</button>
+      </div>
+    </div>
+    <div class="tgroup">
+      <div class="tlabel">TELE</div>
+      <div class="trow">
+        <button class="tbtn" data-key="KeyR">＋</button>
+        <button class="tbtn" data-key="KeyF">－</button>
+      </div>
+    </div>
+    <div class="tgroup">
+      <div class="tlabel">HOIST</div>
+      <div class="trow">
+        <button class="tbtn" data-key="KeyZ">▲</button>
+        <button class="tbtn" data-key="KeyX">▼</button>
+      </div>
+    </div>
+    <div class="tgroup">
+      <div class="tlabel">ACTION</div>
+      <div class="trow">
+        <button class="tbtn big" data-key="Space">GRAB</button>
+        <button class="tbtn small" data-key="KeyO">OUT</button>
+        <button class="tbtn small" data-key="KeyC">CAM</button>
+        <button class="tbtn small" data-key="KeyM">SND</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="js/vendor/three.min.js"></script>
