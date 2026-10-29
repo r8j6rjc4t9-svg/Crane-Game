@@ -79,7 +79,7 @@ function initThree() {
   scene.fog = new THREE.Fog(0xa8c6de, 140, 460);
 
   camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(28, 17, 28);
+  camera.position.set(24, 12, 24);
 
   controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 6, 0);
@@ -415,90 +415,150 @@ function buildEnvironment() {
 // ---------------------------------------------------------------- crane
 var crane = {};   // named parts
 
+// lattice boom section: two chords + diagonal webbing (real crane look)
+function latticeSection(w, h, len, mat, darkMat) {
+  var g = new THREE.Group();
+  var cw = w / 2 - 0.06, ch = h / 2 - 0.06; // chord offsets
+  [[-cw, -ch], [cw, -ch], [-cw, ch], [cw, ch]].forEach(function (p) {
+    var chord = box(0.13, 0.13, len, mat);
+    chord.position.set(p[0], p[1], len / 2);
+    g.add(chord);
+  });
+  var bays = Math.floor(len / 2);
+  for (var b = 0; b < bays; b++) {
+    var z0 = b * 2 + 1;
+    // horizontal + vertical braces per bay
+    var hz = box(w - 0.1, 0.07, 0.07, darkMat); hz.position.set(0, -ch, z0); g.add(hz);
+    var hz2 = hz.clone(); hz2.position.y = ch; g.add(hz2);
+    var vx = box(0.07, h - 0.1, 0.07, darkMat); vx.position.set(-cw, 0, z0); g.add(vx);
+    var vx2 = vx.clone(); vx2.position.x = cw; g.add(vx2);
+    // diagonals (zig-zag)
+    var flip = b % 2 === 0;
+    var d1 = box(0.06, 0.06, Math.hypot(w, h) * 0.72, darkMat);
+    d1.position.set(0, 0, z0);
+    d1.rotation.y = Math.atan2(h, w) * (flip ? 1 : -1);
+    d1.rotation.x = Math.PI / 2 * 0 + Math.atan2(w, h) * 0; // keep simple: rotate around z after y
+    g.add(d1);
+    var d2 = d1.clone();
+    d2.rotation.y = -Math.atan2(h, w) * (flip ? 1 : -1);
+    g.add(d2);
+  }
+  // end collars
+  [-1, 1].forEach(function (s) {
+    var collar = box(w + 0.05, h + 0.05, 0.16, darkMat);
+    collar.position.set(0, 0, s > 0 ? len - 0.08 : 0.08);
+    g.add(collar);
+  });
+  return g;
+}
+
 function buildCrane() {
-  var yellow = std(LIEBHERR_YELLOW, { roughness: 0.32, metalness: 0.35, envMapIntensity: 1.1 });
-  var yellowDark = std(0xd9a400, { roughness: 0.42, metalness: 0.3 });
-  var dark = std(DARK, { roughness: 0.55, metalness: 0.45 });
-  var steel = std(0x3a3f45, { roughness: 0.35, metalness: 0.75 });
-  var glass = std(0x18222e, { roughness: 0.08, metalness: 0.85, envMapIntensity: 1.4 });
+  var yellow = std(LIEBHERR_YELLOW, { roughness: 0.3, metalness: 0.3, envMapIntensity: 1.2 });
+  var yellowDark = std(0xd9a400, { roughness: 0.4, metalness: 0.3 });
+  var dark = std(DARK, { roughness: 0.5, metalness: 0.5 });
+  var steel = std(0x3a3f45, { roughness: 0.32, metalness: 0.8 });
+  var chrome = std(0xd7dce2, { metalness: 0.95, roughness: 0.15 });
+  var glass = std(0x18222e, { roughness: 0.06, metalness: 0.9, envMapIntensity: 1.6 });
   var white = std(0xf2f2f2, { roughness: 0.5 });
 
   var root = new THREE.Group();
   scene.add(root);
   crane.root = root;
 
-  // carrier chassis with beveled look: main beam + side skirts
-  var chassis = box(13.5, 0.75, 3.1, steel);
-  chassis.position.y = 1.05;
-  root.add(chassis);
-  [-1, 1].forEach(function (s) {
-    var skirt = box(13.5, 0.35, 0.12, dark);
-    skirt.position.set(0, 0.85, s * 1.6);
-    root.add(skirt);
+  // ---- carrier: frame rails, crossmembers, fenders
+  var railMat = steel;
+  [-1.25, 1.25].forEach(function (x) {
+    var rail = box(13.8, 0.55, 0.22, railMat);
+    rail.position.set(x, 1.0, 0);
+    root.add(rail);
+  });
+  [-4.5, -1.5, 1.5, 4.5].forEach(function (z) {
+    var xm = box(2.7, 0.4, 0.16, dark);
+    xm.position.set(0, 1.0, z);
+    root.add(xm);
+  });
+  // fenders over wheels
+  var fenderMat = yellow;
+  [-5.2, -3.6, -2.0, -0.4, 1.6].forEach(function (z) {
+    [-1.35, 1.35].forEach(function (x) {
+      var f = box(0.6, 0.1, 1.7, fenderMat);
+      f.position.set(x, 1.32, z);
+      root.add(f);
+    });
   });
   // fuel tank + exhaust stack
-  var tank = cyl(0.42, 0.42, 2.6, std(0x8f959c, { roughness: 0.35, metalness: 0.7 }), 14);
+  var tank = cyl(0.42, 0.42, 2.6, std(0x9aa0a8, { roughness: 0.3, metalness: 0.75 }), 16);
   tank.rotation.z = Math.PI / 2;
-  tank.position.set(2.1, 1.05, -3.2);
+  tank.position.set(0.9, 0.75, -4.2);
   root.add(tank);
-  var exhaust = cyl(0.07, 0.09, 1.6, steel, 8);
-  exhaust.position.set(-2.2, 2.0, -4.6);
+  var exhaust = cyl(0.07, 0.1, 1.8, steel, 8);
+  exhaust.position.set(-0.9, 2.1, -5.4);
   root.add(exhaust);
+  var exhaustCap = cyl(0.13, 0.1, 0.12, dark, 8);
+  exhaustCap.position.set(-0.9, 3.05, -5.4);
+  root.add(exhaustCap);
 
-  var deckUnder = box(8.5, 0.5, 3.4, dark);
-  deckUnder.position.set(0, 1.6, -1.2);
+  var deckUnder = box(8.5, 0.5, 3.4, yellow);
+  deckUnder.position.set(0, 1.62, -1.2);
   root.add(deckUnder);
 
-  // carrier cab (front) with bumper, headlights, mirrors, steps
+  // ---- carrier cab: sloped hood, full glass, lights, mirrors, steps, LIEBHERR text
   var cabF = new THREE.Group();
-  cabF.position.set(0, 1.4, 5.3);
-  var cabBody = box(2.6, 2.1, 2.2, yellow);
-  cabBody.position.y = 1.05;
-  var cabGlass = box(2.4, 0.9, 2.24, glass);
-  cabGlass.position.set(0, 1.75, 0);
-  var grill = box(2.62, 0.5, 0.06, dark);
-  grill.position.set(0, 0.7, 1.12);
-  var bumper = box(2.8, 0.35, 0.25, dark);
-  bumper.position.set(0, 0.35, 1.25);
+  cabF.position.set(0, 1.35, 5.6);
+  var cabBody = box(2.7, 1.7, 2.3, yellow);
+  cabBody.position.y = 0.95;
+  var hood = box(2.7, 0.7, 1.1, yellow);
+  hood.position.set(0, 0.55, 1.6);
+  var cabGlass = box(2.5, 1.0, 2.32, glass);
+  cabGlass.position.set(0, 2.0, 0.1);
+  var cabRoof = box(2.8, 0.14, 2.4, dark);
+  cabRoof.position.y = 2.55;
+  var grill = box(2.72, 0.55, 0.07, dark);
+  grill.position.set(0, 0.62, 2.16);
+  var bumper = box(2.9, 0.4, 0.3, dark);
+  bumper.position.set(0, 0.32, 2.28);
+  var cabLabel = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.6, 0.4),
+    new THREE.MeshBasicMaterial({ map: makeTextTexture('LIEBHERR', { bg: '#ffc400', fg: '#111', font: 60, w: 256, h: 64 }) })
+  );
+  cabLabel.position.set(0, 2.05, 2.17);
+  cabF.add(cabBody); cabF.add(hood); cabF.add(cabGlass); cabF.add(cabRoof); cabF.add(grill); cabF.add(bumper); cabF.add(cabLabel);
   [-1, 1].forEach(function (s) {
-    var hl = box(0.4, 0.22, 0.06, new THREE.MeshStandardMaterial({ color: 0xfff8e0, emissive: 0xfff2c0, emissiveIntensity: 0.8 }));
-    hl.position.set(s * 0.85, 0.85, 1.13);
-    var mir = box(0.06, 0.3, 0.18, dark);
-    mir.position.set(s * 1.42, 1.9, 0.6);
-    var step = box(0.5, 0.08, 0.4, dark);
-    step.position.set(s * 0.9, 0.12, 1.4);
-    cabF.add(hl); cabF.add(mir); cabF.add(step);
+    var hl = box(0.42, 0.24, 0.07, new THREE.MeshStandardMaterial({ color: 0xfff8e0, emissive: 0xfff2c0, emissiveIntensity: 0.9 }));
+    hl.position.set(s * 0.9, 0.85, 2.17);
+    var il = box(0.2, 0.12, 0.05, new THREE.MeshStandardMaterial({ color: 0xff9500, emissive: 0xff7300, emissiveIntensity: 0.9 }));
+    il.position.set(s * 0.45, 0.55, 2.17);
+    var mirArm = box(0.05, 0.05, 0.5, dark);
+    mirArm.position.set(s * 1.38, 2.2, 1.2);
+    var mir = box(0.08, 0.32, 0.2, dark);
+    mir.position.set(s * 1.42, 2.2, 1.45);
+    var step = box(0.6, 0.08, 0.5, dark);
+    step.position.set(s * 0.9, 0.1, 2.4);
+    cabF.add(hl); cabF.add(il); cabF.add(mirArm); cabF.add(mir); cabF.add(step);
   });
-  cabF.add(cabBody); cabF.add(cabGlass); cabF.add(grill); cabF.add(bumper);
   root.add(cabF);
 
-  // wheels: 5 axles with tread rings and lug nuts
-  var wheelGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.5, 24);
-  var hubGeo = new THREE.CylinderGeometry(0.26, 0.26, 0.52, 14);
-  var treadGeo = new THREE.CylinderGeometry(0.56, 0.56, 0.52, 24, 1, true);
-  var tyreMat = std(0x17181a, { roughness: 0.92, metalness: 0 });
-  var hubMat = std(0xc8cdd3, { roughness: 0.25, metalness: 0.8 });
+  // ---- wheels: 5 axles, big tires, chrome hubs with lug nuts
+  var tyreMat = std(0x141518, { roughness: 0.95, metalness: 0 });
+  var hubMat = std(0xc8cdd3, { roughness: 0.22, metalness: 0.85 });
   var axleZ = [-5.2, -3.6, -2.0, -0.4, 1.6];
   axleZ.forEach(function (z) {
     [-1.35, 1.35].forEach(function (x) {
-      var w = new THREE.Mesh(wheelGeo, tyreMat);
+      var w = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.52, 24), tyreMat);
       w.rotation.z = Math.PI / 2;
-      w.position.set(x, 0.55, z);
+      w.position.set(x, 0.58, z);
       w.castShadow = true;
-      var tread = new THREE.Mesh(treadGeo, std(0x0d0e10, { roughness: 1 }));
-      tread.rotation.z = Math.PI / 2;
-      tread.position.copy(w.position);
-      var hub = new THREE.Mesh(hubGeo, hubMat);
+      var hub = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.55, 16), hubMat);
       hub.rotation.z = Math.PI / 2;
-      hub.position.set(x, 0.55, z);
-      for (var lug = 0; lug < 6; lug++) {
-        var la = lug / 6 * Math.PI * 2;
-        var nut = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.54, 6), hubMat);
+      hub.position.set(x, 0.58, z);
+      root.add(w); root.add(hub);
+      for (var lug = 0; lug < 8; lug++) {
+        var la = lug / 8 * Math.PI * 2;
+        var nut = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.57, 6), hubMat);
         nut.rotation.z = Math.PI / 2;
-        nut.position.set(x + Math.cos(la) * 0.15, 0.55 + Math.sin(la) * 0.15, z);
+        nut.position.set(x + Math.cos(la) * 0.16, 0.58 + Math.sin(la) * 0.16, z);
         root.add(nut);
       }
-      root.add(w); root.add(tread); root.add(hub);
     });
   });
 
@@ -625,82 +685,97 @@ function buildCrane() {
     pivot.add(gus);
   });
   // pivot pin
-  var pin = cyl(0.16, 0.16, 1.3, std(0xd7dce2, { metalness: 0.9, roughness: 0.2 }), 12);
+  var pin = cyl(0.18, 0.18, 1.5, chrome, 14);
   pin.rotation.z = Math.PI / 2;
   pin.position.set(0, -0.4, -0.2);
   pivot.add(pin);
+  // pin caps
+  [-0.78, 0.78].forEach(function (x) {
+    var cap = cyl(0.24, 0.24, 0.06, steel, 12);
+    cap.rotation.z = Math.PI / 2;
+    cap.position.set(x, -0.4, -0.2);
+    pivot.add(cap);
+  });
 
   // luffing cylinders (from deck to boom underside) — visual, follow boom angle
   crane.luffCyls = [];
-  [-0.5, 0.5].forEach(function (x) {
+  [-0.62, 0.62].forEach(function (x) {
     var base = new THREE.Group();
-    base.position.set(x, 1.3, 0.4);
-    var barrel = cyl(0.14, 0.14, 2.6, steel, 12);
-    barrel.position.y = 1.3;
-    var rod = cyl(0.08, 0.08, 2.6, std(0xd7dce2, { metalness: 0.9, roughness: 0.2 }), 10);
-    rod.position.y = 2.4;
-    base.add(barrel); base.add(rod);
+    base.position.set(x, 1.5, 0.2);
+    var barrel = cyl(0.16, 0.18, 3.0, steel, 14);
+    barrel.position.y = 1.5;
+    var rod = cyl(0.09, 0.09, 3.0, chrome, 10);
+    rod.position.y = 2.9;
+    var pinB = cyl(0.1, 0.1, 0.5, chrome, 8);
+    pinB.rotation.z = Math.PI / 2;
+    base.add(barrel); base.add(rod); base.add(pinB);
     sup.add(base);
     crane.luffCyls.push({ base: base, barrel: barrel, rod: rod });
   });
 
   crane.boomSections = [];
-  var widths = [1.15, 1.02, 0.89, 0.76, 0.63];
-  var heights = [1.25, 1.1, 0.97, 0.84, 0.71];
+  var widths = [1.5, 1.3, 1.12, 0.95, 0.78];
+  var heights = [1.6, 1.4, 1.22, 1.05, 0.88];
   for (var i = 0; i <= TELE_SECTIONS; i++) {
     var len = (i === 0) ? BOOM_BASE_LEN : TELE_SECTION_LEN;
     var mat = (i === 0) ? yellow : ((i % 2 === 1) ? yellowDark : yellow);
-    var sec = box(widths[i], heights[i], len, mat);
+    var sec = latticeSection(widths[i], heights[i], len, mat, steel);
     sec.position.z = len / 2; // updated each frame for telescoping
     pivot.add(sec);
-    // collar ring at the rear of each telescoping section
-    var collar = box(widths[i] + 0.12, heights[i] + 0.12, 0.35, dark);
-    collar.position.z = -len / 2 + 0.18;
-    sec.add(collar);
-    // top wear pads
-    var padT = box(widths[i] * 0.7, 0.06, len * 0.9, white);
-    padT.position.y = heights[i] / 2 + 0.03;
-    sec.add(padT);
+    // side wear pads on telescoping sections
+    if (i > 0) {
+      [-1, 1].forEach(function (s) {
+        var padS = box(0.06, heights[i] * 0.8, len * 0.85, white);
+        padS.position.set(s * (widths[i] / 2 + 0.03), 0, 0);
+        sec.add(padS);
+      });
+    }
     crane.boomSections.push(sec);
   }
-  // sheave head at the tip
-  var head = box(0.7, 0.85, 0.55, steel);
-  head.position.z = TELE_SECTION_LEN + 0.15;
-  crane.boomSections[TELE_SECTIONS].add(head);
-  [-0.18, 0.18].forEach(function (x) {
-    var sh = cyl(0.2, 0.2, 0.1, std(0xd7dce2, { metalness: 0.9, roughness: 0.2 }), 12);
-    sh.rotation.z = Math.PI / 2;
-    sh.position.set(x, 0.1, TELE_SECTION_LEN + 0.15);
-    crane.boomSections[TELE_SECTIONS].add(sh);
+  // sheave head at the tip: cheeks + 3 sheaves + pin
+  var tipSec = crane.boomSections[TELE_SECTIONS];
+  [-0.34, 0.34].forEach(function (x) {
+    var cheekH = box(0.09, 0.9, 0.7, steel);
+    cheekH.position.set(x, 0.15, TELE_SECTION_LEN + 0.2);
+    tipSec.add(cheekH);
   });
-  // white tip marker on last section
-  var tipMark = box(0.66, 0.74, 0.5, white);
-  tipMark.position.z = TELE_SECTION_LEN - 0.3;
-  crane.boomSections[TELE_SECTIONS].add(tipMark);
+  [-0.17, 0, 0.17].forEach(function (x) {
+    var sh = cyl(0.21, 0.21, 0.07, chrome, 14);
+    sh.rotation.z = Math.PI / 2;
+    sh.position.set(x, 0.15, TELE_SECTION_LEN + 0.2);
+    tipSec.add(sh);
+  });
+  var headPin = cyl(0.08, 0.08, 0.8, chrome, 10);
+  headPin.rotation.z = Math.PI / 2;
+  headPin.position.set(0, 0.15, TELE_SECTION_LEN + 0.2);
+  tipSec.add(headPin);
 
-  // hook block + hook: cheek plates, 2 sheaves, safety latch
+  // hook block + hook: cheek plates, 3 sheaves, crossbar, big hook with latch
   var hook = new THREE.Group();
-  [-0.24, 0.24].forEach(function (x) {
-    var cheekP = box(0.08, 0.9, 0.5, yellowDark);
-    cheekP.position.set(x, -0.35, 0);
+  [-0.3, 0.3].forEach(function (x) {
+    var cheekP = box(0.09, 1.1, 0.6, yellow);
+    cheekP.position.set(x, -0.45, 0);
     hook.add(cheekP);
   });
-  [-0.13, 0.13].forEach(function (x) {
-    var sh = cyl(0.2, 0.2, 0.08, dark, 14);
+  [-0.18, 0, 0.18].forEach(function (x) {
+    var sh = cyl(0.22, 0.22, 0.08, dark, 16);
     sh.rotation.z = Math.PI / 2;
-    sh.position.set(x, 0.05, 0);
+    sh.position.set(x, 0.0, 0);
     hook.add(sh);
   });
-  var crossBar = cyl(0.07, 0.07, 0.56, steel, 8);
+  var crossBar = cyl(0.08, 0.08, 0.68, chrome, 10);
   crossBar.rotation.z = Math.PI / 2;
-  crossBar.position.y = 0.12;
-  var hookCurve = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.07, 8, 16, Math.PI * 1.4), steel);
-  hookCurve.position.y = -0.85;
+  crossBar.position.y = 0.08;
+  var hookCurve = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.09, 10, 18, Math.PI * 1.45), steel);
+  hookCurve.position.y = -1.0;
   hookCurve.rotation.z = Math.PI;
-  var latch = box(0.05, 0.3, 0.05, steel);
-  latch.position.set(0.22, -0.62, 0);
-  latch.rotation.z = -0.5;
-  hook.add(crossBar); hook.add(hookCurve); hook.add(latch);
+  var latch = box(0.06, 0.36, 0.06, steel);
+  latch.position.set(0.27, -0.72, 0);
+  latch.rotation.z = -0.55;
+  var topEye = cyl(0.1, 0.1, 0.7, steel, 10);
+  topEye.rotation.z = Math.PI / 2;
+  topEye.position.y = 0.62;
+  hook.add(crossBar); hook.add(hookCurve); hook.add(latch); hook.add(topEye);
   scene.add(hook);
   crane.hook = hook;
 
