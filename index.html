@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Liebherr LTM Mobile Crane — 3D Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="game"></div>
+
+<div id="hud">
+  <div class="panel" id="top-left">
+    <h1>LIEBHERR <span>LTM 1130-5.1</span></h1>
+    <div class="sub">MOBILE CRANE SIMULATOR</div>
+    <div id="mission">—</div>
+    <div id="score-line">SCORE <b id="score">0</b> &nbsp; BEST <b id="best">0</b> &nbsp; DELIVERIES <b id="deliv">0</b></div>
+    <div id="time-line">TIME <b id="time">0.0s</b></div>
+  </div>
+
+  <div class="panel" id="top-right">
+    <div class="row"><span>SLEW</span><b id="r-slew">0°</b></div>
+    <div class="row"><span>BOOM</span><b id="r-boom">62°</b></div>
+    <div class="row"><span>TELESCOPE</span><b id="r-tele">0%</b></div>
+    <div class="row"><span>CABLE</span><b id="r-cable">12.0 m</b></div>
+    <div class="row"><span>LOAD</span><b id="r-load">—</b></div>
+    <div class="row"><span>OUTRIGGERS</span><b id="r-out">UP</b></div>
+  </div>
+
+  <div class="panel" id="help">
+    <div><kbd>Q</kbd>/<kbd>E</kbd> slew &nbsp; <kbd>W</kbd>/<kbd>S</kbd> boom &nbsp; <kbd>R</kbd>/<kbd>F</kbd> telescope</div>
+    <div><kbd>Z</kbd>/<kbd>X</kbd> hoist &nbsp; <kbd>SPACE</kbd> grab / drop &nbsp; <kbd>O</kbd> outriggers</div>
+    <div><kbd>C</kbd> camera &nbsp; <kbd>SHIFT</kbd> fast &nbsp; <kbd>H</kbd> help &nbsp; <kbd>M</kbd> sound &nbsp; mouse = orbit</div>
+  </div>
+
+  <div id="toast"></div>
+  <div id="banner"></div>
+  <div id="start-hint">click or press any key to start</div>
+</div>
+
+<script src="js/vendor/three.min.js"></script>
+<script src="js/vendor/OrbitControls.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
